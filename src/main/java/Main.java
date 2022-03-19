@@ -4,7 +4,7 @@ import java.util.Scanner;
 public class Main {
 
     public static char[][] map;
-    public static final int SIZE = 3;
+    public static final int SIZE = 5;
     public static final int DOTS_TO_WIN = 3;
     public static final char DOT_X = 'X';
     public static final char DOT_O = 'O';
@@ -14,12 +14,13 @@ public class Main {
     public static Random random = new Random();
 
     public static void main(String[] args) {
+        System.out.println("IT'S TIME TO PLAY A GAME!");
         initMap();
         printMap();
         while (true) {
             humanTurn();
             printMap();
-            if (checkWin(DOT_X)) {
+            if (checkWinLines(DOT_X)) {
                 System.out.println("Кожаный мешок победил");
                 break;
             }
@@ -29,7 +30,7 @@ public class Main {
             }
             aiTurn();
             printMap();
-            if (checkWin(DOT_O)) {
+            if (checkWinLines(DOT_O)) {
                 System.out.println("Великая компутера победила");
                 break;
             }
@@ -70,7 +71,7 @@ public class Main {
         int x;
         int y;
         do {
-            System.out.println("Введите координаты X Y");
+            System.out.println("Кожаный мешок, введи координаты сначала: столбец, потом строка");
             x = scanner.nextInt() - 1;
             y = scanner.nextInt() - 1;
         } while (!isCellValid(x, y)); // while(isCellValid(x, y) == false)
@@ -80,11 +81,52 @@ public class Main {
     public static void aiTurn() { //ai turn
         int x;
         int y;
+        //попытка победить самому
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (isCellValid(i, j)) {
+                    map[j][i] = DOT_O;
+                    if (checkWinLines(DOT_O)) {
+                        return;
+                    }
+                    map[j][i] = DOT_EMPTY;
+                }
+            }
+        }
+
+        //сбить победную линию противника, если остался 1 ход до победы
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (isCellValid(i, j)) {
+                    map[j][i] = DOT_X;
+                    if (checkWinLines(DOT_X)) {
+                        map[j][i] = DOT_O;
+                        return;
+                    }
+                    map[j][i] = DOT_EMPTY;
+                }
+            }
+        }
+
+        //сбить ход противника, если осталось 2 хода до победы
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (isCellValid(i, j)) {
+                    map[j][i] = DOT_X;
+                    if (checkWinLines(DOT_X, DOTS_TO_WIN - 1) && Math.random() < 0.5) {// вход в перегруженный метод+ рандом для случайности действий компа
+                        map[j][i] = DOT_O;
+                        return;
+                    }
+                    map[j][i] = DOT_EMPTY;
+                }
+            }
+        }
+
+        //ход в рандомную точку, сюда поидее не должен дойти
         do {
             x = random.nextInt(SIZE);
             y = random.nextInt(SIZE);
         } while (!isCellValid(x, y));
-        System.out.println("Великая компутера походила в точку " + (x + 1) + " " + (y + 1));
         map[y][x] = DOT_O;
     }
 
@@ -103,16 +145,30 @@ public class Main {
         return true;
     }
 
-    public static boolean checkWin(char symb) { //проверка победы, переписать
-        if (map[0][0] == symb && map[0][1] == symb && map[0][2] == symb) return true;
-        if (map[1][0] == symb && map[1][1] == symb && map[1][2] == symb) return true;
-        if (map[2][0] == symb && map[2][1] == symb && map[2][2] == symb) return true;
-        if (map[0][0] == symb && map[1][0] == symb && map[2][0] == symb) return true;
-        if (map[0][1] == symb && map[1][1] == symb && map[2][1] == symb) return true;
-        if (map[0][2] == symb && map[1][2] == symb && map[2][2] == symb) return true;
-        if (map[0][0] == symb && map[1][1] == symb && map[2][2] == symb) return true;
-        if (map[2][0] == symb && map[1][1] == symb && map[0][2] == symb) return true;
-        return false;
+    static boolean checkWinLines(char dot) { //win method
+        return checkWinLines(dot, DOTS_TO_WIN);
     }
 
+    static boolean checkLine(int cy, int cx, int vy, int vx, char dot, int dotsToWin) { //overload check line method
+        if (cx + vx * (dotsToWin - 1) > SIZE - 1 || cy + vy * (dotsToWin - 1) > SIZE - 1 || cy + vy * (dotsToWin - 1) < 0) {
+            return false;
+        }
+        for (int i = 0; i < dotsToWin; i++) {
+            if (map[cy + i * vy][cx + i * vx] != dot) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static boolean checkWinLines(char dot, int dotsToWin) { //overload win method
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (checkLine(i, j, 0, 1, dot, dotsToWin) || checkLine(i, j, 1, 0, dot, dotsToWin) || checkLine(i, j, 1, 1, dot, dotsToWin) || checkLine(i, j, -1, 1, dot, dotsToWin)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
